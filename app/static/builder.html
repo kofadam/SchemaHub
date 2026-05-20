@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Schema Builder — SchemaHub</title>
+  <style>
+    :root {
+      --bg: #f8faff;
+      --surface: #ffffff;
+      --surface2: #f1f4fd;
+      --surface3: #e8edf8;
+      --border: #dde3f5;
+      --border2: #c5cee8;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --accent-light: #eff6ff;
+      --accent2: #7c3aed;
+      --accent2-light: #f5f3ff;
+      --green: #16a34a;
+      --green-light: #f0fdf4;
+      --red: #dc2626;
+      --red-light: #fef2f2;
+      --yellow: #d97706;
+      --yellow-light: #fffbeb;
+      --text: #0f172a;
+      --text2: #334155;
+      --text3: #64748b;
+      --text4: #94a3b8;
+      --mono: 'JetBrains Mono','Fira Code',monospace;
+      --sans: 'Inter','DM Sans','Segoe UI',system-ui,sans-serif;
+      --r: 10px;
+      --r-sm: 6px;
+      --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+      --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.04);
+      --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.08), 0 4px 6px rgba(0,0,0,0.04);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: var(--sans); background: var(--bg); color: var(--text); min-height: 100vh; overflow: hidden; }
+
+    /* Header */
+    header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 24px; display: flex; align-items: center; height: 56px; box-shadow: var(--shadow-md); position: relative; z-index: 100; }
+    .logo { display: flex; align-items: center; gap: 9px; text-decoration: none; }
+    .logo-icon { width: 28px; height: 28px; background: linear-gradient(135deg, var(--accent), var(--accent2)); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; color: #fff; font-weight: 800; flex-shrink: 0; }
+    .logo-text { font-size: 0.95rem; font-weight: 800; color: var(--text); letter-spacing: -0.02em; }
+    .logo-text span { color: var(--accent); }
+    header nav { margin-left: auto; display: flex; align-items: center; gap: 2px; }
+    header nav a { color: var(--text3); text-decoration: none; font-size: 0.8rem; font-weight: 500; padding: 5px 11px; border-radius: 6px; transition: all 0.15s; }
+    header nav a:hover { background: var(--accent-light); color: var(--accent); }
+    header nav a.active { background: var(--accent2-light); color: var(--accent2); font-weight: 700; }
+
+    /* Layout */
+    .layout { display: grid; grid-template-columns: 1fr 360px; height: calc(100vh - 56px); }
+
+    /* Panels */
+    .builder-panel { display: flex; flex-direction: column; overflow: hidden; border-right: 1px solid var(--border); }
+    .preview-panel { display: flex; flex-direction: column; overflow: hidden; background: var(--surface); }
+
+    .panel-header { display: flex; align-items: center; gap: 8px; padding: 11px 18px; background: var(--surface); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+    .panel-title { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text3); }
+    .panel-actions { margin-left: auto; display: flex; gap: 5px; }
+
+    .badge { font-size: 0.65rem; padding: 2px 8px; border-radius: 20px; font-weight: 700; letter-spacing: 0.04em; }
+    .badge-blue { background: var(--accent-light); color: var(--accent); }
+    .badge-purple { background: var(--accent2-light); color: var(--accent2); }
+    .badge-green { background: var(--green-light); color: var(--green); }
+
+    .builder-scroll { flex: 1; overflow-y: auto; padding: 16px; background: var(--bg); }
+    .preview-scroll { flex: 1; overflow-y: auto; padding: 16px; }
+
+    /* Buttons */
+    .btn { display: inline-flex; align-items: center; gap: 5px; padding: 6px 13px; border-radius: var(--r-sm); font-size: 0.78rem; font-weight: 600; cursor: pointer; transition: all 0.15s; border: 1.5px solid transparent; font-family: var(--sans); white-space: nowrap; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-ghost { background: var(--surface); color: var(--text2); border-color: var(--border2); }
+    .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-ghost:disabled { opacity: 0.35; cursor: not-allowed; }
+    .btn-success { background: var(--green-light); color: var(--green); border-color: #86efac; }
+    .btn-success:hover { background: #dcfce7; }
+    .btn-success:disabled { opacity: 0.35; cursor: not-allowed; }
+    .btn-icon { background: transparent; border: none; color: var(--text4); cursor: pointer; padding: 3px 5px; border-radius: 4px; font-size: 0.8rem; transition: all 0.15s; display: inline-flex; align-items: center; }
+    .btn-icon:hover { background: var(--red-light); color: var(--red); }
+    .btn-icon.expand { color: var(--text4); }
+    .btn-icon.expand:hover { background: var(--accent-light); color: var(--accent); }
+
+    /* Schema meta */
+    .schema-meta { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--r); padding: 14px 16px; margin-bottom: 12px; box-shadow: var(--shadow); }
+    .meta-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .meta-row:last-child { margin-bottom: 0; }
+    .meta-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text3); width: 70px; flex-shrink: 0; }
+    .meta-input { flex: 1; background: var(--surface2); border: 1.5px solid var(--border); border-radius: var(--r-sm); color: var(--text); font-size: 0.82rem; padding: 5px 9px; outline: none; font-family: var(--sans); transition: border-color 0.15s; }
+    .meta-input:focus { border-color: var(--accent); background: var(--surface); }
+    .meta-input::placeholder { color: var(--text4); }
+
+    /* Section label */
+    .section-lbl { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text3); margin: 14px 0 8px; display: flex; align-items: center; gap: 8px; }
+    .section-lbl::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+    /* Field card */
+    .field-card { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--r); margin-bottom: 7px; box-shadow: var(--shadow); transition: border-color 0.15s; }
+    .field-card:hover { border-color: var(--border2); }
+    .field-card.object-card { border-left: 3px solid var(--accent); }
+    .field-card.array-card { border-left: 3px solid var(--accent2); }
+
+    .field-main { display: flex; align-items: center; gap: 6px; padding: 8px 10px; flex-wrap: wrap; }
+
+    .field-key { font-family: var(--mono); font-size: 0.76rem; color: var(--accent); background: var(--accent-light); border: 1.5px solid #bfdbfe; border-radius: var(--r-sm); padding: 4px 8px; width: 120px; outline: none; transition: border-color 0.15s; }
+    .field-key:focus { border-color: var(--accent); }
+    .field-key::placeholder { color: var(--text4); font-style: italic; }
+
+    .field-type { background: var(--surface2); border: 1.5px solid var(--border2); border-radius: var(--r-sm); color: var(--text); font-size: 0.74rem; padding: 4px 8px; outline: none; cursor: pointer; font-family: var(--sans); transition: border-color 0.15s; min-width: 88px; }
+    .field-type:focus { border-color: var(--accent); }
+
+    .req-label { display: flex; align-items: center; gap: 4px; font-size: 0.71rem; font-weight: 600; color: var(--text4); cursor: pointer; user-select: none; white-space: nowrap; }
+    .req-label input { accent-color: var(--accent); cursor: pointer; width: 13px; height: 13px; }
+    .req-label.on { color: var(--accent); }
+
+    .field-desc { flex: 1; min-width: 80px; background: transparent; border: none; border-bottom: 1.5px dashed var(--border2); color: var(--text2); font-size: 0.74rem; padding: 3px 4px; outline: none; font-family: var(--sans); transition: border-color 0.15s; }
+    .field-desc:focus { border-color: var(--accent); }
+    .field-desc::placeholder { color: var(--text4); }
+
+    .field-acts { display: flex; align-items: center; gap: 2px; margin-left: auto; flex-shrink: 0; }
+
+    /* Constraints */
+    .constraints { padding: 8px 10px 10px; border-top: 1px dashed var(--border); background: var(--surface2); border-radius: 0 0 var(--r) var(--r); display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-start; }
+    .cg { display: flex; flex-direction: column; gap: 3px; min-width: 90px; }
+    .cl { font-size: 0.63rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text3); }
+    .ci { background: var(--surface); border: 1.5px solid var(--border2); border-radius: var(--r-sm); color: var(--text); font-size: 0.74rem; font-family: var(--mono); padding: 4px 7px; outline: none; width: 100%; transition: border-color 0.15s; }
+    .ci:focus { border-color: var(--accent); }
+    .ci::placeholder { color: var(--text4); }
+    .ci-sel { background: var(--surface); border: 1.5px solid var(--border2); border-radius: var(--r-sm); color: var(--text); font-size: 0.74rem; padding: 4px 7px; outline: none; cursor: pointer; font-family: var(--sans); width: 100%; }
+    .ci-sel:focus { border-color: var(--accent); }
+    .cc { display: flex; align-items: center; gap: 5px; font-size: 0.74rem; color: var(--text2); cursor: pointer; margin-top: 2px; }
+    .cc input { accent-color: var(--accent); cursor: pointer; }
+
+    /* Enum */
+    .enum-ed { display: flex; flex-direction: column; gap: 4px; min-width: 150px; flex: 1; }
+    .enum-tags { display: flex; flex-wrap: wrap; gap: 3px; min-height: 26px; }
+    .enum-tag { display: inline-flex; align-items: center; gap: 3px; padding: 2px 8px; background: var(--accent-light); border: 1px solid #bfdbfe; border-radius: 20px; font-size: 0.71rem; color: var(--accent); font-family: var(--mono); }
+    .enum-tag button { background: none; border: none; cursor: pointer; color: var(--accent); font-size: 0.7rem; padding: 0; line-height: 1; }
+    .enum-add-row { display: flex; gap: 4px; }
+    .enum-in { flex: 1; background: var(--surface); border: 1.5px solid var(--border2); border-radius: var(--r-sm); color: var(--text); font-size: 0.74rem; font-family: var(--mono); padding: 4px 7px; outline: none; }
+    .enum-in:focus { border-color: var(--accent); }
+    .enum-add { padding: 4px 9px; background: var(--accent); color: #fff; border: none; border-radius: var(--r-sm); font-size: 0.72rem; font-weight: 600; cursor: pointer; }
+    .enum-add:hover { background: var(--accent-hover); }
+
+    /* Children */
+    .children-area { padding: 8px 8px 10px 20px; border-top: 1px solid var(--border); background: var(--surface2); border-radius: 0 0 var(--r) var(--r); }
+    .children-lbl { font-size: 0.63rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text3); margin-bottom: 8px; }
+    .add-child { display: flex; align-items: center; gap: 5px; padding: 5px 10px; background: var(--surface); border: 1.5px dashed var(--border2); border-radius: var(--r-sm); color: var(--text3); font-size: 0.73rem; cursor: pointer; width: 100%; margin-top: 4px; transition: all 0.15s; font-family: var(--sans); }
+    .add-child:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* Root add */
+    .add-root { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 11px; background: var(--surface); border: 2px dashed var(--border2); border-radius: var(--r); color: var(--text3); font-size: 0.82rem; font-weight: 600; cursor: pointer; width: 100%; transition: all 0.15s; font-family: var(--sans); margin-top: 4px; }
+    .add-root:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+
+    /* Conditional */
+    .cond-card { background: var(--surface); border: 1.5px solid #fde68a; border-left: 3px solid var(--yellow); border-radius: var(--r); margin-bottom: 8px; box-shadow: var(--shadow); }
+    .cond-hdr { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--yellow-light); border-bottom: 1px solid #fde68a; border-radius: var(--r) var(--r) 0 0; }
+    .cond-body { padding: 10px 12px; }
+    .ctag { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; padding: 2px 8px; border-radius: 20px; }
+    .if-tag { background: var(--yellow-light); color: var(--yellow); border: 1px solid #fde68a; }
+    .then-tag { background: var(--green-light); color: var(--green); border: 1px solid #86efac; }
+    .else-tag { background: var(--red-light); color: var(--red); border: 1px solid #fca5a5; }
+    .csec { margin-bottom: 10px; }
+    .csec-lbl { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+    .crow { display: flex; align-items: center; gap: 5px; margin-bottom: 4px; }
+    .csel { background: var(--surface2); border: 1.5px solid var(--border2); border-radius: var(--r-sm); color: var(--text); font-size: 0.74rem; padding: 4px 7px; outline: none; flex: 1; font-family: var(--sans); }
+    .csel:focus { border-color: var(--accent); }
+    .cval { background: var(--surface); border: 1.5px solid var(--border2); border-radius: var(--r-sm); color: var(--text); font-size: 0.74rem; font-family: var(--mono); padding: 4px 7px; outline: none; flex: 1; }
+    .cval:focus { border-color: var(--accent); }
+    .ceq { font-family: var(--mono); color: var(--text3); font-size: 0.85rem; }
+    .cdiv { height: 1px; background: var(--border); margin: 8px 0; }
+
+    /* Preview */
+    .preview-code { background: var(--surface2); border: 1.5px solid var(--border); border-radius: var(--r); padding: 14px; box-shadow: var(--shadow); }
+    pre { font-family: var(--mono); font-size: 0.75rem; line-height: 1.75; white-space: pre-wrap; word-break: break-word; color: var(--text2); }
+    .jk { color: #1d4ed8; }
+    .js { color: #166534; }
+    .jn { color: #92400e; }
+    .jb { color: #6d28d9; }
+    .jnull { color: var(--text4); }
+
+    /* Preview empty */
+    .preview-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 200px; gap: 8px; color: var(--text4); text-align: center; padding: 20px; }
+    .preview-empty .icon { font-size: 2rem; opacity: 0.3; }
+    .preview-empty p { font-size: 0.8rem; line-height: 1.5; }
+
+    /* Modal */
+    .overlay { display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.4); z-index: 200; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
+    .overlay.open { display: flex; }
+    .modal { background: var(--surface); border: 1.5px solid var(--border2); border-radius: 14px; padding: 28px; width: 460px; max-width: 92vw; box-shadow: var(--shadow-lg); }
+    .modal h3 { font-size: 1rem; font-weight: 800; letter-spacing: -0.01em; margin-bottom: 5px; }
+    .modal p { color: var(--text3); font-size: 0.83rem; margin-bottom: 20px; }
+    .mf { margin-bottom: 13px; }
+    .mf label { display: block; font-size: 0.7rem; color: var(--text3); margin-bottom: 5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+    .mi { width: 100%; background: var(--surface2); border: 1.5px solid var(--border2); border-radius: var(--r-sm); color: var(--text); font-size: 0.85rem; padding: 8px 11px; outline: none; font-family: var(--sans); transition: border-color 0.15s; }
+    .mi:focus { border-color: var(--accent); }
+    .macts { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+    .id-result { display: none; margin-top: 14px; padding: 12px; background: var(--green-light); border: 1px solid #86efac; border-radius: var(--r-sm); }
+    .id-result.show { display: block; }
+    .id-lbl { font-size: 0.7rem; color: var(--text3); margin-bottom: 4px; font-weight: 600; }
+    .id-val { font-family: var(--mono); font-size: 0.78rem; color: var(--green); word-break: break-all; cursor: pointer; font-weight: 600; }
+    .id-val:hover { text-decoration: underline; }
+
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <a class="logo" href="/">
+    <div class="logo-icon">SH</div>
+    <span class="logo-text">Schema<span>Hub</span></span>
+  </a>
+  <nav>
+    <a href="/ui">Generator</a>
+    <a href="/builder" class="active">Builder</a>
+    <a href="/docs">API Docs</a>
+    <a href="/redoc">ReDoc</a>
+  </nav>
+</header>
+
+<div class="layout">
+
+  <!-- Builder -->
+  <div class="builder-panel">
+    <div class="panel-header">
+      <span class="panel-title">Schema Builder</span>
+      <span class="badge badge-purple">Visual Editor</span>
+      <div class="panel-actions">
+        <button class="btn btn-ghost" onclick="addConditional()">＋ Condition</button>
+        <button class="btn btn-primary" onclick="addRootField()">＋ Add Field</button>
+      </div>
+    </div>
+    <div class="builder-scroll" id="builderScroll">
+      <div class="schema-meta">
+        <div class="meta-row">
+          <span class="meta-label">Title</span>
+          <input class="meta-input" id="schemaTitle" placeholder="My Schema" oninput="updatePreview()"/>
+        </div>
+        <div class="meta-row">
+          <span class="meta-label">Description</span>
+          <input class="meta-input" id="schemaDesc" placeholder="Optional description" oninput="updatePreview()"/>
+        </div>
+      </div>
+      <div class="section-lbl">Properties</div>
+      <div id="fieldsContainer"></div>
+      <button class="add-root" onclick="addRootField()">＋ Add Field</button>
+      <div class="section-lbl" id="condSectionLbl" style="display:none">Conditionals</div>
+      <div id="condsContainer"></div>
+    </div>
+  </div>
+
+  <!-- Preview -->
+  <div class="preview-panel">
+    <div class="panel-header">
+      <span class="panel-title">Schema Preview</span>
+      <span class="badge badge-green">JSON 2020-12</span>
+      <div class="panel-actions">
+        <button class="btn btn-ghost" id="copyBtn" onclick="copySchema()" disabled>⎘ Copy</button>
+        <button class="btn btn-success" id="registerBtn" onclick="openModal()" disabled>↑ Register</button>
+      </div>
+    </div>
+    <div class="preview-scroll">
+      <div class="preview-empty" id="previewEmpty">
+        <div class="icon">{ }</div>
+        <p>Add fields on the left<br>to build your schema</p>
+      </div>
+      <div class="preview-code" id="previewCode" style="display:none">
+        <pre id="preview"></pre>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Modal -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h3>Register Schema</h3>
+    <p>Save to the registry and get a reusable ID for your pipelines.</p>
+    <div class="mf">
+      <label>Format</label>
+      <input class="mi" id="mFmt" value="json" readonly/>
+    </div>
+    <div class="mf">
+      <label>Description <span style="color:var(--text4);text-transform:none;font-weight:400">(optional)</span></label>
+      <input class="mi" id="mDesc" placeholder="e.g. User profile schema v1"/>
+    </div>
+    <div class="id-result" id="idResult">
+      <div class="id-lbl">✓ Registered — click ID to copy:</div>
+      <div class="id-val" id="idVal" onclick="copyId()"></div>
+    </div>
+    <div class="macts">
+      <button class="btn btn-ghost" onclick="closeModal()">Close</button>
+      <button class="btn btn-primary" id="doRegBtn" onclick="doRegister()">Register</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let fields = [], conds = [], nid = 1;
+
+function mkField(key='', type='string', required=false) {
+  return { id:nid++, key, type, required, description:'', minLength:'', maxLength:'', pattern:'', format:'', minimum:'', maximum:'', exclusiveMin:'', exclusiveMax:'', multipleOf:'', minItems:'', maxItems:'', uniqueItems:false, itemType:'string', enumValues:[], children:[], collapsed:false, showConstraints:true };
+}
+function mkCond() { return { id:nid++, ifField:'', ifValue:'', thenFields:[], elseFields:[] }; }
+
+function render() {
+  const fc=document.getElementById('fieldsContainer'), cc=document.getElementById('condsContainer');
+  fc.innerHTML=''; cc.innerHTML='';
+  fields.forEach((f,i) => fc.appendChild(renderField(f,i,fields,null)));
+  conds.forEach(c => cc.appendChild(renderCond(c)));
+  document.getElementById('condSectionLbl').style.display = conds.length ? 'flex' : 'none';
+}
+
+function renderField(f, idx, arr, pid) {
+  const card=document.createElement('div');
+  card.className='field-card'+(f.type==='object'?' object-card':f.type==='array'?' array-card':'');
+
+  const main=document.createElement('div'); main.className='field-main';
+
+  const exp=document.createElement('button'); exp.className='btn-icon expand';
+  exp.textContent=(f.type==='object'||f.type==='array')?(f.collapsed?'▶':'▼'):'·';
+  if(f.type==='object'||f.type==='array') exp.onclick=()=>{ f.collapsed=!f.collapsed; render(); updatePreview(); };
+  else exp.style.visibility='hidden';
+  main.appendChild(exp);
+
+  const ki=document.createElement('input'); ki.className='field-key'; ki.value=f.key; ki.placeholder='field name';
+  ki.oninput=e=>{ f.key=e.target.value; updatePreview(); }; main.appendChild(ki);
+
+  const ts=document.createElement('select'); ts.className='field-type';
+  ['string','integer','number','boolean','object','array','null'].forEach(t=>{ const o=document.createElement('option'); o.value=t; o.textContent=t; if(t===f.type)o.selected=true; ts.appendChild(o); });
+  ts.onchange=e=>{ f.type=e.target.value; render(); updatePreview(); }; main.appendChild(ts);
+
+  const rl=document.createElement('label'); rl.className='req-label'+(f.required?' on':'');
+  const rc=document.createElement('input'); rc.type='checkbox'; rc.checked=f.required;
+  rc.onchange=e=>{ f.required=e.target.checked; rl.className='req-label'+(f.required?' on':''); updatePreview(); };
+  rl.appendChild(rc); rl.appendChild(document.createTextNode('req')); main.appendChild(rl);
+
+  const di=document.createElement('input'); di.className='field-desc'; di.value=f.description; di.placeholder='description…';
+  di.oninput=e=>{ f.description=e.target.value; updatePreview(); }; main.appendChild(di);
+
+  const acts=document.createElement('div'); acts.className='field-acts';
+  if(f.type!=='boolean'&&f.type!=='null') {
+    const tb=document.createElement('button'); tb.className='btn-icon'; tb.title='Toggle constraints';
+    tb.textContent='⚙'; tb.style.color=f.showConstraints?'var(--accent)':'var(--text4)';
+    tb.onclick=()=>{ f.showConstraints=!f.showConstraints; render(); }; acts.appendChild(tb);
+  }
+  const db=document.createElement('button'); db.className='btn-icon'; db.innerHTML='✕';
+  db.onclick=()=>{ if(pid===null) fields.splice(idx,1); else { const p=findF(fields,pid); if(p) p.children.splice(idx,1); } render(); updatePreview(); };
+  acts.appendChild(db); main.appendChild(acts); card.appendChild(main);
+
+  if(f.showConstraints&&f.type!=='boolean'&&f.type!=='null'&&!f.collapsed) {
+    const con=document.createElement('div'); con.className='constraints';
+    if(f.type==='string'||f.type==='integer'||f.type==='number') {
+      const eg=document.createElement('div'); eg.className='enum-ed';
+      const el=document.createElement('span'); el.className='cl'; el.textContent='Enum values';
+      const tags=document.createElement('div'); tags.className='enum-tags';
+      f.enumValues.forEach((v,vi)=>{ const tag=document.createElement('span'); tag.className='enum-tag'; tag.textContent=v; const rb=document.createElement('button'); rb.textContent='×'; rb.onclick=()=>{ f.enumValues.splice(vi,1); render(); updatePreview(); }; tag.appendChild(rb); tags.appendChild(tag); });
+      const ar=document.createElement('div'); ar.className='enum-add-row';
+      const ei=document.createElement('input'); ei.className='enum-in'; ei.placeholder='Add value…';
+      ei.onkeydown=e=>{ if(e.key==='Enter'&&ei.value.trim()){ f.enumValues.push(ei.value.trim()); ei.value=''; render(); updatePreview(); e.preventDefault(); } };
+      const eb=document.createElement('button'); eb.className='enum-add'; eb.textContent='＋';
+      eb.onclick=()=>{ if(ei.value.trim()){ f.enumValues.push(ei.value.trim()); ei.value=''; render(); updatePreview(); } };
+      ar.appendChild(ei); ar.appendChild(eb); eg.appendChild(el); eg.appendChild(tags); eg.appendChild(ar); con.appendChild(eg);
+    }
+    if(f.type==='string') { con.appendChild(mkCI(f,'minLength','Min length','number','e.g. 1')); con.appendChild(mkCI(f,'maxLength','Max length','number','e.g. 255')); con.appendChild(mkCI(f,'pattern','Pattern (regex)','text','^[a-z]+$')); const fg=document.createElement('div'); fg.className='cg'; const fl=document.createElement('span'); fl.className='cl'; fl.textContent='Format'; const fs=document.createElement('select'); fs.className='ci-sel'; ['','email','date','date-time','time','uri','uuid','ipv4','ipv6','hostname'].forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v||'(none)'; if(v===f.format)o.selected=true; fs.appendChild(o); }); fs.onchange=e=>{ f.format=e.target.value; updatePreview(); }; fg.appendChild(fl); fg.appendChild(fs); con.appendChild(fg); }
+    if(f.type==='integer'||f.type==='number') { con.appendChild(mkCI(f,'minimum','Minimum','number','e.g. 0')); con.appendChild(mkCI(f,'maximum','Maximum','number','e.g. 100')); con.appendChild(mkCI(f,'exclusiveMin','Excl. min','number','')); con.appendChild(mkCI(f,'exclusiveMax','Excl. max','number','')); con.appendChild(mkCI(f,'multipleOf','Multiple of','number','e.g. 5')); }
+    if(f.type==='array') { con.appendChild(mkCI(f,'minItems','Min items','number','e.g. 1')); con.appendChild(mkCI(f,'maxItems','Max items','number','e.g. 10')); const ug=document.createElement('div'); ug.className='cg'; const ul=document.createElement('span'); ul.className='cl'; ul.textContent='Unique items'; const uc=document.createElement('label'); uc.className='cc'; const ui=document.createElement('input'); ui.type='checkbox'; ui.checked=f.uniqueItems; ui.onchange=e=>{ f.uniqueItems=e.target.checked; updatePreview(); }; uc.appendChild(ui); uc.appendChild(document.createTextNode('uniqueItems')); ug.appendChild(ul); ug.appendChild(uc); con.appendChild(ug); const itg=document.createElement('div'); itg.className='cg'; const itl=document.createElement('span'); itl.className='cl'; itl.textContent='Item type'; const its=document.createElement('select'); its.className='ci-sel'; ['string','integer','number','boolean','object'].forEach(t=>{ const o=document.createElement('option'); o.value=t; o.textContent=t; if(t===f.itemType)o.selected=true; its.appendChild(o); }); its.onchange=e=>{ f.itemType=e.target.value; updatePreview(); }; itg.appendChild(itl); itg.appendChild(its); con.appendChild(itg); }
+    if(con.children.length) card.appendChild(con);
+  }
+
+  if(f.type==='object'&&!f.collapsed) {
+    const ca=document.createElement('div'); ca.className='children-area';
+    const cl=document.createElement('div'); cl.className='children-lbl'; cl.textContent='Nested Properties'; ca.appendChild(cl);
+    f.children.forEach((c,ci)=>ca.appendChild(renderField(c,ci,f.children,f.id)));
+    const nb=document.createElement('button'); nb.className='add-child'; nb.innerHTML='＋ Add nested field';
+    nb.onclick=()=>{ f.children.push(mkField()); render(); updatePreview(); }; ca.appendChild(nb); card.appendChild(ca);
+  }
+  return card;
+}
+
+function mkCI(f, prop, label, type, placeholder) {
+  const g=document.createElement('div'); g.className='cg';
+  const l=document.createElement('span'); l.className='cl'; l.textContent=label;
+  const i=document.createElement('input'); i.className='ci'; i.type=type; i.placeholder=placeholder; i.value=f[prop];
+  i.oninput=e=>{ f[prop]=e.target.value; updatePreview(); }; g.appendChild(l); g.appendChild(i); return g;
+}
+
+function findF(arr, id) { for(const f of arr){ if(f.id===id) return f; const found=findF(f.children||[],id); if(found) return found; } return null; }
+
+function renderCond(c) {
+  const card=document.createElement('div'); card.className='cond-card';
+  const hdr=document.createElement('div'); hdr.className='cond-hdr';
+  hdr.innerHTML='<span style="font-size:0.78rem;font-weight:700;color:var(--yellow)">⚡ Conditional Validation</span>';
+  const db=document.createElement('button'); db.className='btn-icon'; db.textContent='✕ Remove'; db.style.cssText='font-size:0.73rem;color:var(--red);margin-left:auto;';
+  db.onclick=()=>{ conds=conds.filter(x=>x.id!==c.id); render(); updatePreview(); }; hdr.appendChild(db); card.appendChild(hdr);
+  const body=document.createElement('div'); body.className='cond-body';
+  const ifs=document.createElement('div'); ifs.className='csec';
+  const ift=document.createElement('div'); ift.className='csec-lbl'; ift.innerHTML='<span class="ctag if-tag">IF</span>';
+  ifs.appendChild(ift);
+  const ifr=document.createElement('div'); ifr.className='crow';
+  const fnames=getFNames(fields);
+  const fsel=document.createElement('select'); fsel.className='csel';
+  const e0=document.createElement('option'); e0.value=''; e0.textContent='— select field —'; fsel.appendChild(e0);
+  fnames.forEach(n=>{ const o=document.createElement('option'); o.value=n; o.textContent=n; if(n===c.ifField)o.selected=true; fsel.appendChild(o); });
+  fsel.onchange=e=>{ c.ifField=e.target.value; updatePreview(); };
+  const eq=document.createElement('span'); eq.className='ceq'; eq.textContent='=';
+  const vi=document.createElement('input'); vi.className='cval'; vi.placeholder='value'; vi.value=c.ifValue;
+  vi.oninput=e=>{ c.ifValue=e.target.value; updatePreview(); };
+  ifr.appendChild(fsel); ifr.appendChild(eq); ifr.appendChild(vi); ifs.appendChild(ifr); body.appendChild(ifs);
+  body.appendChild(renderCondBranch(c,'then')); body.appendChild(renderCondBranch(c,'else'));
+  card.appendChild(body); return card;
+}
+
+function renderCondBranch(c, branch) {
+  const s=document.createElement('div'); s.className='csec';
+  const lbl=document.createElement('div'); lbl.className='csec-lbl';
+  lbl.innerHTML=`<span class="ctag ${branch}-tag">${branch.toUpperCase()}</span><span style="font-size:0.7rem;color:var(--text3);margin-left:4px">required fields</span>`;
+  s.appendChild(lbl);
+  const arr=branch==='then'?c.thenFields:c.elseFields;
+  arr.forEach((f,i)=>{ const row=document.createElement('div'); row.className='crow'; const sel=document.createElement('select'); sel.className='csel'; const e0=document.createElement('option'); e0.value=''; e0.textContent='— field —'; sel.appendChild(e0); getFNames(fields).forEach(n=>{ const o=document.createElement('option'); o.value=n; o.textContent=n; if(n===f)o.selected=true; sel.appendChild(o); }); sel.onchange=e=>{ arr[i]=e.target.value; updatePreview(); }; const db=document.createElement('button'); db.className='btn-icon'; db.textContent='✕'; db.onclick=()=>{ arr.splice(i,1); render(); updatePreview(); }; row.appendChild(sel); row.appendChild(db); s.appendChild(row); });
+  const ab=document.createElement('button'); ab.className='add-child'; ab.style.marginTop='4px'; ab.innerHTML=`＋ Add ${branch} field`;
+  ab.onclick=()=>{ arr.push(''); render(); updatePreview(); }; s.appendChild(ab); return s;
+}
+
+function getFNames(arr, pfx) { const names=[]; arr.forEach(f=>{ const n=pfx?`${pfx}.${f.key}`:f.key; if(f.key) names.push(n); if(f.type==='object'&&f.children.length) names.push(...getFNames(f.children,n)); }); return names; }
+
+function buildSchema() {
+  if(fields.length===0&&conds.length===0) return null;
+  const title=document.getElementById('schemaTitle').value.trim();
+  const desc=document.getElementById('schemaDesc').value.trim();
+  const s={'$schema':'https://json-schema.org/draft/2020-12/schema',...(title?{title}:{}),...(desc?{description:desc}:{}),type:'object',properties:{},required:[]};
+  fields.forEach(f=>{ if(!f.key) return; s.properties[f.key]=buildDef(f); if(f.required) s.required.push(f.key); });
+  if(s.required.length===0) delete s.required;
+  if(Object.keys(s.properties).length===0) delete s.properties;
+  conds.forEach(c=>{ if(!c.ifField) return; s.if={properties:{[c.ifField]:{const:c.ifValue||undefined}}}; if(c.thenFields.filter(Boolean).length) s.then={required:c.thenFields.filter(Boolean)}; if(c.elseFields.filter(Boolean).length) s.else={required:c.elseFields.filter(Boolean)}; });
+  return s;
+}
+
+function buildDef(f) {
+  const d={type:f.type};
+  if(f.description) d.description=f.description;
+  if(f.enumValues.length){ d.enum=f.enumValues; return d; }
+  if(f.type==='string'){ if(f.minLength!=='') d.minLength=parseInt(f.minLength); if(f.maxLength!=='') d.maxLength=parseInt(f.maxLength); if(f.pattern) d.pattern=f.pattern; if(f.format) d.format=f.format; }
+  if(f.type==='integer'||f.type==='number'){ if(f.minimum!=='') d.minimum=Number(f.minimum); if(f.maximum!=='') d.maximum=Number(f.maximum); if(f.exclusiveMin!=='') d.exclusiveMinimum=Number(f.exclusiveMin); if(f.exclusiveMax!=='') d.exclusiveMaximum=Number(f.exclusiveMax); if(f.multipleOf!=='') d.multipleOf=Number(f.multipleOf); }
+  if(f.type==='array'){ if(f.minItems!=='') d.minItems=parseInt(f.minItems); if(f.maxItems!=='') d.maxItems=parseInt(f.maxItems); if(f.uniqueItems) d.uniqueItems=true; d.items={type:f.itemType}; }
+  if(f.type==='object'&&f.children.length){ d.properties={}; d.required=[]; f.children.forEach(c=>{ if(!c.key) return; d.properties[c.key]=buildDef(c); if(c.required) d.required.push(c.key); }); if(d.required.length===0) delete d.required; }
+  return d;
+}
+
+function updatePreview() {
+  const s=buildSchema(), hasS=s!==null;
+  document.getElementById('previewEmpty').style.display=hasS?'none':'flex';
+  document.getElementById('previewCode').style.display=hasS?'block':'none';
+  document.getElementById('copyBtn').disabled=!hasS;
+  document.getElementById('registerBtn').disabled=!hasS;
+  if(hasS) document.getElementById('preview').innerHTML=highlight(JSON.stringify(s,null,2));
+}
+
+function highlight(j){ return j.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,m=>{ if(/^"/.test(m)) return/:$/.test(m)?`<span class="jk">${m}</span>`:`<span class="js">${m}</span>`; if(/true|false/.test(m)) return`<span class="jb">${m}</span>`; if(/null/.test(m)) return`<span class="jnull">${m}</span>`; return`<span class="jn">${m}</span>`; }); }
+
+function addRootField(){ fields.push(mkField()); render(); updatePreview(); }
+function addConditional(){ if(fields.length===0){ alert('Add at least one field first.'); return; } conds.push(mkCond()); render(); updatePreview(); }
+
+function copySchema(){ const s=buildSchema(); if(!s) return; navigator.clipboard.writeText(JSON.stringify(s,null,2)).then(()=>{ const b=document.getElementById('copyBtn'); b.textContent='✓ Copied'; setTimeout(()=>b.textContent='⎘ Copy',1500); }); }
+
+function openModal(){ document.getElementById('mDesc').value=document.getElementById('schemaTitle').value||''; document.getElementById('idResult').classList.remove('show'); document.getElementById('doRegBtn').disabled=false; document.getElementById('doRegBtn').textContent='Register'; document.getElementById('overlay').classList.add('open'); }
+function closeModal(){ document.getElementById('overlay').classList.remove('open'); }
+
+async function doRegister(){ const s=buildSchema(); if(!s) return; const desc=document.getElementById('mDesc').value.trim(); const btn=document.getElementById('doRegBtn'); btn.disabled=true; btn.textContent='Registering...'; try{ const res=await fetch('/schemas',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({format:'json',description:desc||undefined,schema_def:s})}); const json=await res.json(); if(!res.ok){ alert(json.detail||'Registration failed'); btn.disabled=false; btn.textContent='Register'; return; } document.getElementById('idVal').textContent=json.schema_id; document.getElementById('idResult').classList.add('show'); btn.textContent='✓ Registered'; }catch(e){ alert('Request failed: '+e.message); btn.disabled=false; btn.textContent='Register'; } }
+
+function copyId(){ const v=document.getElementById('idVal').textContent; navigator.clipboard.writeText(v).then(()=>{ document.getElementById('idVal').textContent='✓ Copied!'; setTimeout(()=>document.getElementById('idVal').textContent=v,1500); }); }
+
+document.getElementById('overlay').addEventListener('click',e=>{ if(e.target===document.getElementById('overlay')) closeModal(); });
+
+// Import schema from generator
+(function() {
+  const raw = sessionStorage.getItem('sv_import_schema');
+  if (!raw) return;
+  try {
+    const payload = JSON.parse(raw);
+    sessionStorage.removeItem('sv_import_schema');
+    const schema = payload.schema || payload;
+    if (!schema.properties) return;
+    const req = schema.required || [];
+    for (const [k, d] of Object.entries(schema.properties)) {
+      const type = Array.isArray(d.type) ? d.type[0] : (d.type || 'string');
+      const f = mkField(k, type, req.includes(k));
+      if (d.description) f.description = d.description;
+      if (type === 'object' && d.properties) {
+        const childReq = d.required || [];
+        for (const [ck, cd] of Object.entries(d.properties)) {
+          const cf = mkField(ck, Array.isArray(cd.type) ? cd.type[0] : (cd.type || 'string'), childReq.includes(ck));
+          if (cd.description) cf.description = cd.description;
+          f.children.push(cf);
+        }
+      }
+      fields.push(f);
+    }
+    if (schema.title) document.getElementById('schemaTitle').value = schema.title;
+    if (schema.description) document.getElementById('schemaDesc').value = schema.description;
+    render(); updatePreview();
+  } catch(e) { console.warn('Failed to import schema:', e); }
+})();
+</script>
+</body>
+</html>

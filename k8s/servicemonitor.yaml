@@ -1,0 +1,20 @@
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: schemahub
+  namespace: schemahub
+  labels:
+    app: schemahub
+    # Match the label selector your Prometheus Operator uses to discover ServiceMonitors
+    # Adjust this label if your Prometheus has a different serviceMonitorSelector
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: schemahub
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s

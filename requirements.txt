@@ -1,0 +1,9 @@
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+pydantic==2.10.3
+jsonschema==4.23.0
+xmlschema==3.4.2
+frictionless==5.18.0
+redis==7.4.0
+slowapi==0.1.9
+prometheus-fastapi-instrumentator==7.1.0

@@ -1,0 +1,38 @@
+---
+# cert-manager Certificate
+# Adjust issuerRef to match your ClusterIssuer
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: schemahub-tls
+  namespace: schemahub
+spec:
+  secretName: schemahub-tls
+  issuerRef:
+    name: <YOUR-CLUSTERISSUER-NAME>
+    kind: ClusterIssuer
+  commonName: schemahub.yourdomain.local
+  dnsNames:
+    - schemahub.yourdomain.local
+  duration: 8760h
+  renewBefore: 720h
+
+---
+# Contour HTTPProxy
+# Replace fqdn and secretName with your values
+apiVersion: projectcontour.io/v1
+kind: HTTPProxy
+metadata:
+  name: schemahub
+  namespace: schemahub
+spec:
+  virtualhost:
+    fqdn: schemahub.yourdomain.local
+    tls:
+      secretName: schemahub-tls
+  routes:
+    - conditions:
+        - prefix: /
+      services:
+        - name: schemahub
+          port: 80

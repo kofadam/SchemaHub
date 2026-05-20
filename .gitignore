@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+*.pyo
+*.pyd
+.Python
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+
+# Swagger static assets (downloaded at build time, not committed)
+swagger-static/swagger-ui-bundle.js
+swagger-static/swagger-ui.css
+swagger-static/redoc.standalone.js
+swagger-static/favicon.png
+
+# Wheels (built locally, not committed)
+wheels/
+
+# Docker
+.dockerignore
+
+# Secrets — never commit these
+*.env
+.env*
+secrets/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Logs
+*.log
+logs/
+
+# Test artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+.DS_Store

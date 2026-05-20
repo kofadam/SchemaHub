@@ -1,0 +1,13 @@
+---
+# Ensures at least 1 replica is always available during node drains
+# Prevents both pods being evicted simultaneously
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: schemahub
+  namespace: schemahub
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: schemahub

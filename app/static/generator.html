@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Schema Generator — SchemaHub</title>
+  <style>
+    :root {
+      --bg: #f8faff;
+      --surface: #ffffff;
+      --surface2: #f1f4fd;
+      --surface3: #e8edf8;
+      --border: #dde3f5;
+      --border2: #c5cee8;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --accent-light: #eff6ff;
+      --accent2: #7c3aed;
+      --green: #16a34a;
+      --green-light: #f0fdf4;
+      --red: #dc2626;
+      --yellow: #d97706;
+      --yellow-light: #fffbeb;
+      --text: #0f172a;
+      --text2: #334155;
+      --text3: #64748b;
+      --text4: #94a3b8;
+      --mono: 'JetBrains Mono','Fira Code',monospace;
+      --sans: 'Inter','DM Sans','Segoe UI',system-ui,sans-serif;
+      --r: 10px;
+      --shadow: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.04);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: var(--sans); background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+
+    /* Header */
+    header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 28px; display: flex; align-items: center; height: 56px; box-shadow: var(--shadow); position: sticky; top: 0; z-index: 100; flex-shrink: 0; }
+    .logo { display: flex; align-items: center; gap: 9px; text-decoration: none; }
+    .logo-icon { width: 28px; height: 28px; background: linear-gradient(135deg, var(--accent), var(--accent2)); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; color: #fff; font-weight: 800; flex-shrink: 0; }
+    .logo-text { font-size: 0.95rem; font-weight: 800; color: var(--text); letter-spacing: -0.02em; }
+    .logo-text span { color: var(--accent); }
+    header nav { margin-left: auto; display: flex; align-items: center; gap: 2px; }
+    header nav a { color: var(--text3); text-decoration: none; font-size: 0.8rem; font-weight: 500; padding: 5px 11px; border-radius: 6px; transition: all 0.15s; }
+    header nav a:hover { background: var(--accent-light); color: var(--accent); }
+    header nav a.active { background: var(--accent-light); color: var(--accent); font-weight: 700; }
+
+    /* Page header */
+    .page-header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 20px 28px; }
+    .page-header h1 { font-size: 1.15rem; font-weight: 800; letter-spacing: -0.02em; color: var(--text); margin-bottom: 3px; }
+    .page-header p { font-size: 0.83rem; color: var(--text3); }
+
+    /* Main */
+    .main { flex: 1; padding: 24px 28px; display: flex; flex-direction: column; gap: 20px; }
+
+    /* Format pills */
+    .format-row { display: flex; align-items: center; gap: 8px; }
+    .format-label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text3); }
+    .pill { padding: 5px 14px; border-radius: 20px; font-size: 0.78rem; font-weight: 600; cursor: pointer; border: 1.5px solid var(--border2); color: var(--text2); background: var(--surface); transition: all 0.15s; }
+    .pill:hover { border-color: var(--accent); color: var(--accent); }
+    .pill.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .pill.disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* Notice */
+    .notice { padding: 10px 14px; border-radius: var(--r); font-size: 0.82rem; display: none; }
+    .notice.show { display: block; }
+    .notice-yellow { background: var(--yellow-light); border: 1px solid #fde68a; color: #92400e; }
+
+    /* Editor panels */
+    .panels { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; flex: 1; min-height: 0; }
+    .editor-panel { display: flex; flex-direction: column; gap: 8px; }
+    .panel-label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text3); }
+    textarea {
+      flex: 1;
+      min-height: 340px;
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: var(--r);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      line-height: 1.7;
+      padding: 14px;
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.15s;
+      box-shadow: var(--shadow);
+    }
+    textarea:focus { border-color: var(--accent); }
+    textarea::placeholder { color: var(--text4); }
+    textarea[readonly] { background: var(--surface2); cursor: default; }
+
+    /* Actions */
+    .actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: var(--r); font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: all 0.15s; border: 1.5px solid transparent; font-family: var(--sans); white-space: nowrap; text-decoration: none; }
+    .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); box-shadow: 0 2px 8px rgba(37,99,235,0.25); }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn-ghost { background: var(--surface); color: var(--text2); border-color: var(--border2); }
+    .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-ghost:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-purple { background: var(--surface); color: var(--accent2); border-color: #ddd6fe; }
+    .btn-purple:hover { background: #f5f3ff; border-color: var(--accent2); }
+
+    .status { font-size: 0.8rem; }
+    .status.error { color: var(--red); }
+    .status.success { color: var(--green); }
+
+    .hint { font-size: 0.74rem; color: var(--text4); }
+  </style>
+</head>
+<body>
+
+<header>
+  <a class="logo" href="/">
+    <div class="logo-icon">SH</div>
+    <span class="logo-text">Schema<span>Hub</span></span>
+  </a>
+  <nav>
+    <a href="/ui" class="active">Generator</a>
+    <a href="/builder">Builder</a>
+    <a href="/docs">API Docs</a>
+    <a href="/redoc">ReDoc</a>
+  </nav>
+</header>
+
+<div class="page-header">
+  <h1>⚡ Schema Generator</h1>
+  <p>Paste a sample of your data — the schema is inferred automatically. Refine it in the Visual Builder if needed.</p>
+</div>
+
+<div class="main">
+  <div class="format-row">
+    <span class="format-label">Format</span>
+    <button class="pill active" data-fmt="json">JSON</button>
+    <button class="pill" data-fmt="csv">CSV</button>
+    <button class="pill disabled" data-fmt="xml" title="XML schema generation not supported">XML</button>
+    <span class="hint" style="margin-left:8px" id="inputHint">Paste a representative sample — the more fields the better. Ctrl+Enter to generate.</span>
+  </div>
+
+  <div class="notice notice-yellow" id="xmlNotice">
+    ⚠️ XML schema generation is not supported. Write your XSD manually and use it in <a href="/docs" style="color:var(--yellow);font-weight:600">/validate</a>.
+  </div>
+
+  <div class="panels">
+    <div class="editor-panel">
+      <span class="panel-label">Sample data</span>
+      <textarea id="inputData" placeholder='Paste your sample JSON here, e.g.:
+{
+  "id": 1,
+  "name": "Alice",
+  "email": "alice@example.com",
+  "active": true
+}'></textarea>
+    </div>
+    <div class="editor-panel">
+      <span class="panel-label">Generated schema</span>
+      <textarea id="outputSchema" readonly placeholder="Generated schema will appear here..."></textarea>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="btn btn-primary" id="generateBtn" onclick="generate()">⚡ Generate Schema</button>
+    <button class="btn btn-ghost" id="copyBtn" onclick="copySchema()" disabled>⎘ Copy</button>
+    <span class="status" id="status"></span>
+    <button class="btn btn-purple" id="openBuilderBtn" onclick="openInBuilder()" style="display:none;margin-left:auto">
+      Open in Visual Builder →
+    </button>
+  </div>
+</div>
+
+<script>
+  let currentFormat = 'json';
+  let generatedSchema = null;
+
+  document.querySelectorAll('.pill').forEach(p => {
+    p.addEventListener('click', () => {
+      if (p.classList.contains('disabled')) return;
+      document.querySelectorAll('.pill').forEach(x => x.classList.remove('active'));
+      p.classList.add('active');
+      currentFormat = p.dataset.fmt;
+      document.getElementById('xmlNotice').classList.toggle('show', currentFormat === 'xml');
+      updateHint();
+      reset();
+    });
+  });
+
+  function updateHint() {
+    const hint = document.getElementById('inputHint');
+    const ta = document.getElementById('inputData');
+    if (currentFormat === 'csv') {
+      hint.textContent = 'Include a header row and at least 2–3 data rows for best type inference. Ctrl+Enter to generate.';
+      ta.placeholder = 'Paste your sample CSV here, e.g.:\nid,name,email,age\n1,Alice,alice@example.com,30\n2,Bob,bob@example.com,25';
+    } else {
+      hint.textContent = 'Paste a representative sample — the more fields the better. Ctrl+Enter to generate.';
+      ta.placeholder = 'Paste your sample JSON here, e.g.:\n{\n  "id": 1,\n  "name": "Alice",\n  "email": "alice@example.com",\n  "active": true\n}';
+    }
+  }
+
+  function reset() {
+    document.getElementById('outputSchema').value = '';
+    document.getElementById('copyBtn').disabled = true;
+    document.getElementById('openBuilderBtn').style.display = 'none';
+    setStatus('', '');
+    generatedSchema = null;
+  }
+
+  async function generate() {
+    if (currentFormat === 'xml') return;
+    const data = document.getElementById('inputData').value.trim();
+    if (!data) { setStatus('Paste some sample data first.', 'error'); return; }
+    const btn = document.getElementById('generateBtn');
+    btn.disabled = true; btn.textContent = 'Generating...';
+    setStatus('', '');
+    try {
+      const res = await fetch('/generate-schema', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ format: currentFormat, data })
+      });
+      const json = await res.json();
+      if (!res.ok) { setStatus(json.detail || 'Generation failed.', 'error'); return; }
+      generatedSchema = json.schema;
+      document.getElementById('outputSchema').value = JSON.stringify(generatedSchema, null, 2);
+      document.getElementById('copyBtn').disabled = false;
+      document.getElementById('openBuilderBtn').style.display = 'inline-flex';
+      setStatus('Schema generated.', 'success');
+    } catch(e) { setStatus('Request failed: ' + e.message, 'error'); }
+    finally { btn.disabled = false; btn.textContent = '⚡ Generate Schema'; }
+  }
+
+  function copySchema() {
+    const text = document.getElementById('outputSchema').value;
+    if (!text) return;
+    navigator.clipboard.writeText(text).then(() => {
+      setStatus('Copied to clipboard!', 'success');
+      setTimeout(() => setStatus('', ''), 2000);
+    });
+  }
+
+  function openInBuilder() {
+    if (generatedSchema) {
+      sessionStorage.setItem('sv_import_schema', JSON.stringify({
+        schema: generatedSchema,
+        format: currentFormat
+      }));
+    }
+    window.open('/builder', '_blank');
+  }
+
+  function setStatus(msg, type) {
+    const el = document.getElementById('status');
+    el.textContent = msg;
+    el.className = 'status ' + (type || '');
+  }
+
+  document.getElementById('inputData').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) generate();
+  });
+</script>
+</body>
+</html>
