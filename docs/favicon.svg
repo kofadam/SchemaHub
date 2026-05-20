@@ -1,0 +1,18 @@
+<svg width="64" height="64" viewBox="0 0 64 64" role="img" xmlns="http://www.w3.org/2000/svg">
+  <title>SchemaHub</title>
+  <defs>
+    <style>@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300&display=swap');</style>
+    <clipPath id="fc">
+      <rect x="0" y="0" width="64" height="64" rx="13"/>
+    </clipPath>
+  </defs>
+  <rect x="0" y="0" width="64" height="64" rx="13" fill="#2563eb"/>
+  <circle cx="58" cy="6" r="22" fill="none" stroke="#ffffff" stroke-width="0.8" opacity="0.15" clip-path="url(#fc)"/>
+  <circle cx="6" cy="62" r="24" fill="none" stroke="#ffffff" stroke-width="0.8" opacity="0.10" clip-path="url(#fc)"/>
+  <text x="32" y="46"
+        font-family="'Barlow Condensed', sans-serif"
+        font-size="34" font-weight="300"
+        fill="#ffffff"
+        text-anchor="middle"
+        letter-spacing="1">SH</text>
+</svg>

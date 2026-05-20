@@ -137,7 +137,7 @@ def docs():
         title="Schema Validator",
         swagger_js_url="/static/swagger-ui-bundle.js",
         swagger_css_url="/static/swagger-ui.css",
-        swagger_favicon_url="/static/favicon.png",
+        swagger_favicon_url="/static/favicon.svg",
     )
 
 
@@ -147,7 +147,7 @@ def redoc():
         openapi_url="/openapi.json",
         title="Schema Validator",
         redoc_js_url="/static/redoc.standalone.js",
-        redoc_favicon_url="/static/favicon.png",
+        redoc_favicon_url="/static/favicon.svg",
     )
 
 

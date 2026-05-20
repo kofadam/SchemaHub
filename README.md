@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/logo.png" alt="SchemaHub" width="80"/>
+<img src="docs/logo.svg" alt="SchemaHub" width="80"/>
 
 # SchemaHub
 
