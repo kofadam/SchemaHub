@@ -13,6 +13,7 @@
 </div>
 
 ---
+<img width="3054" height="1932" alt="image" src="https://github.com/user-attachments/assets/90c3e9b8-36e2-4226-8ea9-91a66365f3f3" />
 
 ## What is SchemaHub?
 
