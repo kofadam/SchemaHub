@@ -13,7 +13,6 @@
 </div>
 
 ---
-<img width="3054" height="1932" alt="image" src="https://github.com/user-attachments/assets/90c3e9b8-36e2-4226-8ea9-91a66365f3f3" />
 
 ## What is SchemaHub?
 
@@ -36,6 +35,14 @@ SchemaHub is a self-hosted schema management service designed for data pipelines
 - **Generator → Builder flow** — generate from sample data, open in Builder to refine
 - **Production-ready** — structured JSON logging, global rate limiting, request size limits, Prometheus metrics, PodDisruptionBudget
 - **Observable** — structured logs for Loki, `/metrics` endpoint for Prometheus, Grafana dashboard included
+
+<img width="3054" height="1932" alt="image" src="https://github.com/user-attachments/assets/90c3e9b8-36e2-4226-8ea9-91a66365f3f3" />
+
+<img width="3054" height="1932" alt="image" src="https://github.com/user-attachments/assets/b5efa921-4828-4da2-8c09-13b8a08a9eea" />
+
+<img width="3054" height="1932" alt="image" src="https://github.com/user-attachments/assets/c5dbcac7-54f0-43a5-90aa-95d76e970a28" />
+
+---
 
 ## Quick start
 
