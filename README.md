@@ -9,6 +9,7 @@
 [![Python](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688.svg)](https://fastapi.tiangolo.com/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Container](https://img.shields.io/badge/ghcr.io-kofadam%2Fschemahub-blue?logo=github)](https://ghcr.io/kofadam/schemahub)
 
 </div>
 
