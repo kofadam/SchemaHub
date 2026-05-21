@@ -47,8 +47,6 @@ SchemaHub is a self-hosted schema management service designed for data pipelines
 
 ## Quick start
 
-### 1. Clone and download assets
-
 ```bash
 git clone https://github.com/kofadam/schemahub.git
 cd schemahub
@@ -57,17 +55,11 @@ curl -sLo swagger-static/swagger-ui-bundle.js "https://cdn.jsdelivr.net/npm/swag
 curl -sLo swagger-static/swagger-ui.css        "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css"
 curl -sLo swagger-static/redoc.standalone.js   "https://unpkg.com/redoc@latest/bundles/redoc.standalone.js"
 curl -sLo swagger-static/favicon.png           "https://fastapi.tiangolo.com/img/favicon.png"
+
+docker compose up
 ```
 
-> `swagger-static/` already exists in the repo — no need to create it.
-
-### 2a. Run with Docker Compose (recommended — includes Redis)
-
-```bash
-docker compose up --build
-```
-
-Open `http://localhost:8000`. The schema registry is persistent across restarts.
+Open `http://localhost:8000`.
 
 ```bash
 # Stop
@@ -76,15 +68,6 @@ docker compose down
 # Stop and wipe Redis data
 docker compose down -v
 ```
-
-### 2b. Run with Docker only (no Redis — in-memory registry)
-
-```bash
-docker build -f Dockerfile.local -t schemahub:local .
-docker run --rm -p 8000:8000 schemahub:local
-```
-
-> Without Redis the registry is in-memory — schemas are lost on restart. All other features work normally.
 
 ## API
 
