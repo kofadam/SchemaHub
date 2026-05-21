@@ -481,6 +481,7 @@ function copyId(){ const v=document.getElementById('idVal').textContent; navigat
 document.getElementById('overlay').addEventListener('click',e=>{ if(e.target===document.getElementById('overlay')) closeModal(); });
 
 // Import schema from generator
+// Handles both JSON Schema (schema.properties) and Frictionless Table Schema (schema.fields)
 (function() {
   const raw = sessionStorage.getItem('sv_import_schema');
   if (!raw) return;
@@ -488,24 +489,49 @@ document.getElementById('overlay').addEventListener('click',e=>{ if(e.target===d
     const payload = JSON.parse(raw);
     sessionStorage.removeItem('sv_import_schema');
     const schema = payload.schema || payload;
-    if (!schema.properties) return;
-    const req = schema.required || [];
-    for (const [k, d] of Object.entries(schema.properties)) {
-      const type = Array.isArray(d.type) ? d.type[0] : (d.type || 'string');
-      const f = mkField(k, type, req.includes(k));
-      if (d.description) f.description = d.description;
-      if (type === 'object' && d.properties) {
-        const childReq = d.required || [];
-        for (const [ck, cd] of Object.entries(d.properties)) {
-          const cf = mkField(ck, Array.isArray(cd.type) ? cd.type[0] : (cd.type || 'string'), childReq.includes(ck));
-          if (cd.description) cf.description = cd.description;
-          f.children.push(cf);
+
+    if (schema.properties) {
+      // JSON Schema — import properties directly
+      const req = schema.required || [];
+      for (const [k, d] of Object.entries(schema.properties)) {
+        const type = Array.isArray(d.type) ? d.type[0] : (d.type || 'string');
+        const f = mkField(k, type, req.includes(k));
+        if (d.description) f.description = d.description;
+        if (type === 'object' && d.properties) {
+          const childReq = d.required || [];
+          for (const [ck, cd] of Object.entries(d.properties)) {
+            const cf = mkField(ck, Array.isArray(cd.type) ? cd.type[0] : (cd.type || 'string'), childReq.includes(ck));
+            if (cd.description) cf.description = cd.description;
+            f.children.push(cf);
+          }
         }
+        fields.push(f);
       }
-      fields.push(f);
+      if (schema.title) document.getElementById('schemaTitle').value = schema.title;
+      if (schema.description) document.getElementById('schemaDesc').value = schema.description;
+
+    } else if (schema.fields && Array.isArray(schema.fields)) {
+      // Frictionless Table Schema (CSV) — map fields to builder fields
+      const typeMap = { integer:'integer', number:'number', boolean:'boolean', object:'object', array:'array', string:'string', date:'string', 'date-time':'string', time:'string' };
+      for (const fd of schema.fields) {
+        const type = typeMap[fd.type] || 'string';
+        const required = fd.constraints?.required === true;
+        const f = mkField(fd.name || '', type, required);
+        if (fd.description) f.description = fd.description;
+        if (fd.constraints) {
+          const c = fd.constraints;
+          if (c.minLength !== undefined) f.minLength   = String(c.minLength);
+          if (c.maxLength !== undefined) f.maxLength   = String(c.maxLength);
+          if (c.pattern   !== undefined) f.pattern     = c.pattern;
+          if (c.minimum   !== undefined) f.minimum     = String(c.minimum);
+          if (c.maximum   !== undefined) f.maximum     = String(c.maximum);
+          if (c.enum      !== undefined) f.enumValues  = c.enum;
+        }
+        fields.push(f);
+      }
+      document.getElementById('schemaTitle').value = 'CSV Schema';
     }
-    if (schema.title) document.getElementById('schemaTitle').value = schema.title;
-    if (schema.description) document.getElementById('schemaDesc').value = schema.description;
+
     render(); updatePreview();
   } catch(e) { console.warn('Failed to import schema:', e); }
 })();
