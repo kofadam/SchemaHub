@@ -52,12 +52,13 @@ SchemaHub is a self-hosted schema management service designed for data pipelines
 git clone https://github.com/kofadam/schemahub.git
 cd schemahub
 
-mkdir swagger-static
 curl -sLo swagger-static/swagger-ui-bundle.js "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js"
 curl -sLo swagger-static/swagger-ui.css        "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css"
-curl -sLo swagger-static/redoc.standalone.js   "https://cdn.jsdelivr.net/npm/redoc@next/bundles/redoc.standalone.js"
+curl -sLo swagger-static/redoc.standalone.js   "https://unpkg.com/redoc@latest/bundles/redoc.standalone.js"
 curl -sLo swagger-static/favicon.png           "https://fastapi.tiangolo.com/img/favicon.png"
 ```
+
+> `swagger-static/` already exists in the repo — no need to create it.
 
 ### 2a. Run with Docker Compose (recommended — includes Redis)
 
@@ -250,8 +251,11 @@ schemahub/
 ├── docs/
 │   ├── INSTALL.md                   # Installation guide
 │   ├── schema-validator-kb.md       # User guide (Confluence-ready)
-│   └── schema-validator-dashboard.json  # Grafana dashboard
+│   ├── schema-validator-dashboard.json  # Grafana dashboard
+│   ├── logo.svg                     # SchemaHub logo
+│   └── favicon.svg                  # Browser favicon
 ├── swagger-static/                  # Swagger UI / ReDoc assets (downloaded, not committed)
+├── docker-compose.yml               # Local development with Redis
 ├── Dockerfile                       # Production image
 ├── Dockerfile.local                 # Local development image
 └── requirements.txt
