@@ -27,6 +27,10 @@ REDIS_DB = int(os.getenv("REDIS_DB", "0"))
 REDIS_KEY_PREFIX = "schema-validator:schema:"
 REDIS_TTL = None  # No expiry — schemas persist until explicitly deleted
 
+# Maximum number of schemas allowed in the registry
+# Prevents unbounded growth from abuse or runaway automation
+MAX_REGISTRY_SIZE = int(os.getenv("MAX_REGISTRY_SIZE", "1000"))
+
 
 # ---------------------------------------------------------------------------
 # Redis client (lazy init)
@@ -75,7 +79,15 @@ _memory_store: dict[str, dict] = {}
 # ---------------------------------------------------------------------------
 
 def register_schema(format: str, schema_def: Any, description: Optional[str] = None) -> str:
-    """Store a schema and return its ID."""
+    """
+    Store a schema and return its ID.
+    Raises ValueError if the registry cap has been reached.
+    """
+    # Enforce registry size cap
+    current = list_schemas()
+    if len(current) >= MAX_REGISTRY_SIZE:
+        raise ValueError(f"Registry cap reached ({MAX_REGISTRY_SIZE} schemas). Delete unused schemas before registering new ones.")
+
     schema_id = str(uuid.uuid4())
     entry = {
         "format": format,

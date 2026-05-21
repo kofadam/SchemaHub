@@ -484,11 +484,14 @@ def register_schema(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Unsupported format '{fmt}'",
         )
-    schema_id = reg.register_schema(
-        format=fmt,
-        schema_def=req.schema_def,
-        description=req.description,
-    )
+    try:
+        schema_id = reg.register_schema(
+            format=fmt,
+            schema_def=req.schema_def,
+            description=req.description,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=str(e))
     return SchemaRegisterResponse(schema_id=schema_id, format=fmt, description=req.description)
 
 
