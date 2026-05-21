@@ -47,6 +47,19 @@ spec:
                 secretKeyRef:
                   name: redis-secret
                   key: password
+            # Optional tuning — defaults are shown below
+            # - name: MAX_REGISTRY_SIZE
+            #   value: "1000"
+            # - name: MAX_SCHEMA_DEPTH
+            #   value: "20"
+            # - name: XML_VALIDATION_TIMEOUT
+            #   value: "10"
+            # - name: MAX_BODY_BYTES
+            #   value: "5242880"
+            # - name: MAX_DATA_BYTES
+            #   value: "1048576"
+            # - name: MAX_SCHEMA_BYTES
+            #   value: "262144"
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
