@@ -30,7 +30,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: schemahub
-          image: your-registry/schemahub:latest
+          image: ghcr.io/kofadam/schemahub:latest
           imagePullPolicy: Always
           ports:
             - name: http
