@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.local
-    image: schemahub:local
+    image: ghcr.io/kofadam/schemahub:latest
     ports:
       - "8000:8000"
     environment:
