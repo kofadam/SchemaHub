@@ -233,7 +233,7 @@
       <span class="panel-title">Schema Builder</span>
       <span class="badge badge-purple">Visual Editor</span>
       <div class="panel-actions">
-        <button class="btn btn-ghost" onclick="addConditional()">＋ Condition</button>
+        <button id="addCondBtn" class="btn btn-ghost" onclick="addConditional()">＋ Condition</button>
         <button class="btn btn-primary" onclick="addRootField()">＋ Add Field</button>
       </div>
     </div>
@@ -260,7 +260,7 @@
   <div class="preview-panel">
     <div class="panel-header">
       <span class="panel-title">Schema Preview</span>
-      <span class="badge badge-green">JSON 2020-12</span>
+      <span id="schemaModeBadge" class="badge badge-green">JSON 2020-12</span>
       <div class="panel-actions">
         <button class="btn btn-ghost" id="copyBtn" onclick="copySchema()" disabled>⎘ Copy</button>
         <button class="btn btn-success" id="registerBtn" onclick="openModal()" disabled>↑ Register</button>
@@ -305,9 +305,14 @@
 
 <script>
 let fields = [], conds = [], nid = 1;
+let currentMode = 'json'; // 'json' or 'xml'
+
+// JSON Schema types vs XSD types
+const JSON_TYPES = ['string','integer','number','boolean','object','array','null'];
+const XSD_TYPES  = ['xs:string','xs:integer','xs:decimal','xs:boolean','xs:date','xs:dateTime','xs:time','complexType'];
 
 function mkField(key='', type='string', required=false) {
-  return { id:nid++, key, type, required, description:'', minLength:'', maxLength:'', pattern:'', format:'', minimum:'', maximum:'', exclusiveMin:'', exclusiveMax:'', multipleOf:'', minItems:'', maxItems:'', uniqueItems:false, itemType:'string', enumValues:[], children:[], collapsed:false, showConstraints:true };
+  return { id:nid++, key, type, required, description:'', minLength:'', maxLength:'', pattern:'', format:'', minimum:'', maximum:'', exclusiveMin:'', exclusiveMax:'', multipleOf:'', minItems:'', maxItems:'', uniqueItems:false, itemType:'string', enumValues:[], children:[], minOccurs:'1', maxOccurs:'1', collapsed:false, showConstraints:true };
 }
 function mkCond() { return { id:nid++, ifField:'', ifValue:'', thenFields:[], elseFields:[] }; }
 
@@ -326,8 +331,9 @@ function renderField(f, idx, arr, pid) {
   const main=document.createElement('div'); main.className='field-main';
 
   const exp=document.createElement('button'); exp.className='btn-icon expand';
-  exp.textContent=(f.type==='object'||f.type==='array')?(f.collapsed?'▶':'▼'):'·';
-  if(f.type==='object'||f.type==='array') exp.onclick=()=>{ f.collapsed=!f.collapsed; render(); updatePreview(); };
+  const isContainer = f.type==='object' || f.type==='array' || f.type==='complexType';
+  exp.textContent = isContainer ? (f.collapsed?'▶':'▼') : '·';
+  if(isContainer) exp.onclick=()=>{ f.collapsed=!f.collapsed; render(); updatePreview(); };
   else exp.style.visibility='hidden';
   main.appendChild(exp);
 
@@ -335,7 +341,8 @@ function renderField(f, idx, arr, pid) {
   ki.oninput=e=>{ f.key=e.target.value; updatePreview(); }; main.appendChild(ki);
 
   const ts=document.createElement('select'); ts.className='field-type';
-  ['string','integer','number','boolean','object','array','null'].forEach(t=>{ const o=document.createElement('option'); o.value=t; o.textContent=t; if(t===f.type)o.selected=true; ts.appendChild(o); });
+  const typeOptions = currentMode === 'xml' ? XSD_TYPES : JSON_TYPES;
+  typeOptions.forEach(t=>{ const o=document.createElement('option'); o.value=t; o.textContent=t; if(t===f.type)o.selected=true; ts.appendChild(o); });
   ts.onchange=e=>{ f.type=e.target.value; render(); updatePreview(); }; main.appendChild(ts);
 
   const rl=document.createElement('label'); rl.className='req-label'+(f.required?' on':'');
@@ -373,15 +380,38 @@ function renderField(f, idx, arr, pid) {
     if(f.type==='string') { con.appendChild(mkCI(f,'minLength','Min length','number','e.g. 1')); con.appendChild(mkCI(f,'maxLength','Max length','number','e.g. 255')); con.appendChild(mkCI(f,'pattern','Pattern (regex)','text','^[a-z]+$')); const fg=document.createElement('div'); fg.className='cg'; const fl=document.createElement('span'); fl.className='cl'; fl.textContent='Format'; const fs=document.createElement('select'); fs.className='ci-sel'; ['','email','date','date-time','time','uri','uuid','ipv4','ipv6','hostname'].forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v||'(none)'; if(v===f.format)o.selected=true; fs.appendChild(o); }); fs.onchange=e=>{ f.format=e.target.value; updatePreview(); }; fg.appendChild(fl); fg.appendChild(fs); con.appendChild(fg); }
     if(f.type==='integer'||f.type==='number') { con.appendChild(mkCI(f,'minimum','Minimum','number','e.g. 0')); con.appendChild(mkCI(f,'maximum','Maximum','number','e.g. 100')); con.appendChild(mkCI(f,'exclusiveMin','Excl. min','number','')); con.appendChild(mkCI(f,'exclusiveMax','Excl. max','number','')); con.appendChild(mkCI(f,'multipleOf','Multiple of','number','e.g. 5')); }
     if(f.type==='array') { con.appendChild(mkCI(f,'minItems','Min items','number','e.g. 1')); con.appendChild(mkCI(f,'maxItems','Max items','number','e.g. 10')); const ug=document.createElement('div'); ug.className='cg'; const ul=document.createElement('span'); ul.className='cl'; ul.textContent='Unique items'; const uc=document.createElement('label'); uc.className='cc'; const ui=document.createElement('input'); ui.type='checkbox'; ui.checked=f.uniqueItems; ui.onchange=e=>{ f.uniqueItems=e.target.checked; updatePreview(); }; uc.appendChild(ui); uc.appendChild(document.createTextNode('uniqueItems')); ug.appendChild(ul); ug.appendChild(uc); con.appendChild(ug); const itg=document.createElement('div'); itg.className='cg'; const itl=document.createElement('span'); itl.className='cl'; itl.textContent='Item type'; const its=document.createElement('select'); its.className='ci-sel'; ['string','integer','number','boolean','object'].forEach(t=>{ const o=document.createElement('option'); o.value=t; o.textContent=t; if(t===f.itemType)o.selected=true; its.appendChild(o); }); its.onchange=e=>{ f.itemType=e.target.value; updatePreview(); }; itg.appendChild(itl); itg.appendChild(its); con.appendChild(itg); }
+
+    // XML mode — show minOccurs/maxOccurs for any element
+    if(currentMode === 'xml') {
+      const minG=document.createElement('div'); minG.className='cg';
+      const minL=document.createElement('span'); minL.className='cl'; minL.textContent='minOccurs';
+      const minI=document.createElement('input'); minI.className='ci'; minI.value=f.minOccurs||'1'; minI.placeholder='1';
+      minI.oninput=e=>{ f.minOccurs=e.target.value; updatePreview(); };
+      minG.appendChild(minL); minG.appendChild(minI); con.appendChild(minG);
+
+      const maxG=document.createElement('div'); maxG.className='cg';
+      const maxL=document.createElement('span'); maxL.className='cl'; maxL.textContent='maxOccurs';
+      const maxI=document.createElement('input'); maxI.className='ci'; maxI.value=f.maxOccurs||'1'; maxI.placeholder='1 or unbounded';
+      maxI.oninput=e=>{ f.maxOccurs=e.target.value; updatePreview(); };
+      maxG.appendChild(maxL); maxG.appendChild(maxI); con.appendChild(maxG);
+    }
     if(con.children.length) card.appendChild(con);
   }
 
-  if(f.type==='object'&&!f.collapsed) {
+  if((f.type==='object' || f.type==='complexType') && !f.collapsed) {
     const ca=document.createElement('div'); ca.className='children-area';
-    const cl=document.createElement('div'); cl.className='children-lbl'; cl.textContent='Nested Properties'; ca.appendChild(cl);
+    const cl=document.createElement('div'); cl.className='children-lbl';
+    cl.textContent = f.type==='complexType' ? 'Child Elements' : 'Nested Properties';
+    ca.appendChild(cl);
     f.children.forEach((c,ci)=>ca.appendChild(renderField(c,ci,f.children,f.id)));
-    const nb=document.createElement('button'); nb.className='add-child'; nb.innerHTML='＋ Add nested field';
-    nb.onclick=()=>{ f.children.push(mkField()); render(); updatePreview(); }; ca.appendChild(nb); card.appendChild(ca);
+    const nb=document.createElement('button'); nb.className='add-child';
+    nb.innerHTML = f.type==='complexType' ? '＋ Add child element' : '＋ Add nested field';
+    nb.onclick=()=>{
+      const defaultType = currentMode === 'xml' ? 'xs:string' : 'string';
+      f.children.push(mkField('', defaultType, false));
+      render(); updatePreview();
+    };
+    ca.appendChild(nb); card.appendChild(ca);
   }
   return card;
 }
@@ -433,6 +463,7 @@ function renderCondBranch(c, branch) {
 function getFNames(arr, pfx) { const names=[]; arr.forEach(f=>{ const n=pfx?`${pfx}.${f.key}`:f.key; if(f.key) names.push(n); if(f.type==='object'&&f.children.length) names.push(...getFNames(f.children,n)); }); return names; }
 
 function buildSchema() {
+  if(currentMode === 'xml') return buildXsd();
   if(fields.length===0&&conds.length===0) return null;
   const title=document.getElementById('schemaTitle').value.trim();
   const desc=document.getElementById('schemaDesc').value.trim();
@@ -442,6 +473,43 @@ function buildSchema() {
   if(Object.keys(s.properties).length===0) delete s.properties;
   conds.forEach(c=>{ if(!c.ifField) return; s.if={properties:{[c.ifField]:{const:c.ifValue||undefined}}}; if(c.thenFields.filter(Boolean).length) s.then={required:c.thenFields.filter(Boolean)}; if(c.elseFields.filter(Boolean).length) s.else={required:c.elseFields.filter(Boolean)}; });
   return s;
+}
+
+function buildXsd() {
+  if(fields.length === 0) return null;
+  const lines = [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">'
+  ];
+  const desc = document.getElementById('schemaDesc').value.trim();
+  if(desc) lines.push('  <!-- ' + desc.replace(/--/g, '- -') + ' -->');
+  fields.forEach(f => buildXsdElement(f, lines, 1));
+  lines.push('</xs:schema>');
+  return lines.join('\n');
+}
+
+function buildXsdElement(f, lines, indent) {
+  if(!f.key) return;
+  const pad = '  '.repeat(indent);
+  const occurs = [];
+  if(f.minOccurs && f.minOccurs !== '1') occurs.push(`minOccurs="${f.minOccurs}"`);
+  if(f.maxOccurs && f.maxOccurs !== '1') occurs.push(`maxOccurs="${f.maxOccurs}"`);
+  const occursStr = occurs.length ? ' ' + occurs.join(' ') : '';
+
+  if(f.type === 'complexType') {
+    lines.push(`${pad}<xs:element name="${f.key}"${occursStr}>`);
+    lines.push(`${pad}  <xs:complexType>`);
+    if(f.children && f.children.length > 0) {
+      lines.push(`${pad}    <xs:sequence>`);
+      f.children.forEach(c => buildXsdElement(c, lines, indent + 3));
+      lines.push(`${pad}    </xs:sequence>`);
+    }
+    lines.push(`${pad}  </xs:complexType>`);
+    lines.push(`${pad}</xs:element>`);
+  } else {
+    // Simple type
+    lines.push(`${pad}<xs:element name="${f.key}" type="${f.type}"${occursStr}/>`);
+  }
 }
 
 function buildDef(f) {
@@ -461,27 +529,77 @@ function updatePreview() {
   document.getElementById('previewCode').style.display=hasS?'block':'none';
   document.getElementById('copyBtn').disabled=!hasS;
   document.getElementById('registerBtn').disabled=!hasS;
-  if(hasS) document.getElementById('preview').innerHTML=highlight(JSON.stringify(s,null,2));
+  if(hasS) {
+    if(currentMode === 'xml') {
+      document.getElementById('preview').textContent = s;
+    } else {
+      document.getElementById('preview').innerHTML=highlight(JSON.stringify(s,null,2));
+    }
+  }
 }
 
 function highlight(j){ return j.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,m=>{ if(/^"/.test(m)) return/:$/.test(m)?`<span class="jk">${m}</span>`:`<span class="js">${m}</span>`; if(/true|false/.test(m)) return`<span class="jb">${m}</span>`; if(/null/.test(m)) return`<span class="jnull">${m}</span>`; return`<span class="jn">${m}</span>`; }); }
 
-function addRootField(){ fields.push(mkField()); render(); updatePreview(); }
+function addRootField(){
+  const defaultType = currentMode === 'xml' ? 'xs:string' : 'string';
+  fields.push(mkField('', defaultType, false));
+  render(); updatePreview();
+}
 function addConditional(){ if(fields.length===0){ alert('Add at least one field first.'); return; } conds.push(mkCond()); render(); updatePreview(); }
 
-function copySchema(){ const s=buildSchema(); if(!s) return; navigator.clipboard.writeText(JSON.stringify(s,null,2)).then(()=>{ const b=document.getElementById('copyBtn'); b.textContent='✓ Copied'; setTimeout(()=>b.textContent='⎘ Copy',1500); }); }
+function copySchema(){
+  const s=buildSchema(); if(!s) return;
+  const text = currentMode === 'xml' ? s : JSON.stringify(s,null,2);
+  navigator.clipboard.writeText(text).then(()=>{
+    const b=document.getElementById('copyBtn');
+    b.textContent='✓ Copied';
+    setTimeout(()=>b.textContent='⎘ Copy',1500);
+  });
+}
 
-function openModal(){ document.getElementById('mDesc').value=document.getElementById('schemaTitle').value||''; document.getElementById('idResult').classList.remove('show'); document.getElementById('doRegBtn').disabled=false; document.getElementById('doRegBtn').textContent='Register'; document.getElementById('overlay').classList.add('open'); }
+function openModal(){
+  document.getElementById('mFmt').value = currentMode;
+  document.getElementById('mDesc').value=document.getElementById('schemaTitle').value||'';
+  document.getElementById('idResult').classList.remove('show');
+  document.getElementById('doRegBtn').disabled=false;
+  document.getElementById('doRegBtn').textContent='Register';
+  document.getElementById('overlay').classList.add('open');
+}
 function closeModal(){ document.getElementById('overlay').classList.remove('open'); }
 
-async function doRegister(){ const s=buildSchema(); if(!s) return; const desc=document.getElementById('mDesc').value.trim(); const btn=document.getElementById('doRegBtn'); btn.disabled=true; btn.textContent='Registering...'; try{ const res=await fetch('/schemas',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({format:'json',description:desc||undefined,schema_def:s})}); const json=await res.json(); if(!res.ok){ alert(json.detail||'Registration failed'); btn.disabled=false; btn.textContent='Register'; return; } document.getElementById('idVal').textContent=json.schema_id; document.getElementById('idResult').classList.add('show'); btn.textContent='✓ Registered'; }catch(e){ alert('Request failed: '+e.message); btn.disabled=false; btn.textContent='Register'; } }
+async function doRegister(){
+  const s=buildSchema(); if(!s) return;
+  const desc=document.getElementById('mDesc').value.trim();
+  const btn=document.getElementById('doRegBtn');
+  btn.disabled=true; btn.textContent='Registering...';
+  try{
+    const payload = {
+      format: currentMode,
+      description: desc || undefined,
+      schema_def: s   // for xml this is a string; for json this is an object
+    };
+    const res=await fetch('/schemas',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload)
+    });
+    const json=await res.json();
+    if(!res.ok){ alert(json.detail||'Registration failed'); btn.disabled=false; btn.textContent='Register'; return; }
+    document.getElementById('idVal').textContent=json.schema_id;
+    document.getElementById('idResult').classList.add('show');
+    btn.textContent='✓ Registered';
+  }catch(e){
+    alert('Request failed: '+e.message);
+    btn.disabled=false; btn.textContent='Register';
+  }
+}
 
 function copyId(){ const v=document.getElementById('idVal').textContent; navigator.clipboard.writeText(v).then(()=>{ document.getElementById('idVal').textContent='✓ Copied!'; setTimeout(()=>document.getElementById('idVal').textContent=v,1500); }); }
 
 document.getElementById('overlay').addEventListener('click',e=>{ if(e.target===document.getElementById('overlay')) closeModal(); });
 
 // Import schema from generator
-// Handles both JSON Schema (schema.properties) and Frictionless Table Schema (schema.fields)
+// Handles JSON Schema, Frictionless Table Schema (CSV), and XSD (XML)
 (function() {
   const raw = sessionStorage.getItem('sv_import_schema');
   if (!raw) return;
@@ -489,9 +607,32 @@ document.getElementById('overlay').addEventListener('click',e=>{ if(e.target===d
     const payload = JSON.parse(raw);
     sessionStorage.removeItem('sv_import_schema');
     const schema = payload.schema || payload;
+    const fmt = payload.format || 'json';
 
-    if (schema.properties) {
+    if (fmt === 'xml' || (typeof schema === 'string' && schema.includes('<xs:schema'))) {
+      // XSD — parse with DOMParser
+      currentMode = 'xml';
+      updateModeUI();
+      const xsdText = typeof schema === 'string' ? schema : String(schema);
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(xsdText, 'application/xml');
+      const errNode = doc.querySelector('parsererror');
+      if (errNode) {
+        console.warn('Failed to parse XSD:', errNode.textContent);
+        return;
+      }
+      // Root element(s) — direct children of xs:schema
+      const root = doc.documentElement;
+      Array.from(root.children).forEach(el => {
+        if (el.localName === 'element') {
+          fields.push(parseXsdElement(el));
+        }
+      });
+      document.getElementById('schemaTitle').value = 'XML Schema';
+
+    } else if (schema.properties) {
       // JSON Schema — import properties directly
+      currentMode = 'json';
       const req = schema.required || [];
       for (const [k, d] of Object.entries(schema.properties)) {
         const type = Array.isArray(d.type) ? d.type[0] : (d.type || 'string');
@@ -511,7 +652,8 @@ document.getElementById('overlay').addEventListener('click',e=>{ if(e.target===d
       if (schema.description) document.getElementById('schemaDesc').value = schema.description;
 
     } else if (schema.fields && Array.isArray(schema.fields)) {
-      // Frictionless Table Schema (CSV) — map fields to builder fields
+      // Frictionless Table Schema (CSV)
+      currentMode = 'json';
       const typeMap = { integer:'integer', number:'number', boolean:'boolean', object:'object', array:'array', string:'string', date:'string', 'date-time':'string', time:'string' };
       for (const fd of schema.fields) {
         const type = typeMap[fd.type] || 'string';
@@ -535,6 +677,48 @@ document.getElementById('overlay').addEventListener('click',e=>{ if(e.target===d
     render(); updatePreview();
   } catch(e) { console.warn('Failed to import schema:', e); }
 })();
+
+function parseXsdElement(el) {
+  const name = el.getAttribute('name') || '';
+  const xsdType = el.getAttribute('type') || '';  // type attr means simple type
+  const minOccurs = el.getAttribute('minOccurs') || '1';
+  const maxOccurs = el.getAttribute('maxOccurs') || '1';
+
+  // Find a child complexType
+  const complexType = Array.from(el.children).find(c => c.localName === 'complexType');
+
+  if (complexType) {
+    const f = mkField(name, 'complexType', minOccurs !== '0');
+    f.minOccurs = minOccurs;
+    f.maxOccurs = maxOccurs;
+    // Look inside <xs:sequence> for child elements
+    const sequence = Array.from(complexType.children).find(c => c.localName === 'sequence');
+    if (sequence) {
+      Array.from(sequence.children).forEach(child => {
+        if (child.localName === 'element') {
+          f.children.push(parseXsdElement(child));
+        }
+      });
+    }
+    return f;
+  } else {
+    const f = mkField(name, xsdType || 'xs:string', minOccurs !== '0');
+    f.minOccurs = minOccurs;
+    f.maxOccurs = maxOccurs;
+    return f;
+  }
+}
+
+function updateModeUI() {
+  const badge = document.getElementById('schemaModeBadge');
+  if (badge) {
+    badge.textContent = currentMode === 'xml' ? 'XSD' : 'JSON 2020-12';
+    badge.className = 'badge ' + (currentMode === 'xml' ? 'badge-yellow' : 'badge-green');
+  }
+  // Hide conditional button in XML mode (XSD doesn't support if/then/else conditionals the same way)
+  const condBtn = document.getElementById('addCondBtn');
+  if (condBtn) condBtn.style.display = currentMode === 'xml' ? 'none' : '';
+}
 </script>
 </body>
 </html>

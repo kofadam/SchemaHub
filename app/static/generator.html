@@ -226,7 +226,7 @@
       const isXml = currentFormat === 'xml';
       document.getElementById('outputSchema').value = isXml ? generatedSchema : JSON.stringify(generatedSchema, null, 2);
       document.getElementById('copyBtn').disabled = false;
-      document.getElementById('openBuilderBtn').style.display = currentFormat === 'xml' ? 'none' : 'inline-flex';
+      document.getElementById('openBuilderBtn').style.display = 'inline-flex';
       document.getElementById('xmlNotice').style.display = currentFormat === 'xml' ? 'block' : 'none';
       setStatus('Schema generated.', 'success');
     } catch(e) { setStatus('Request failed: ' + e.message, 'error'); }

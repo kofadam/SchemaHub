@@ -100,11 +100,43 @@ setup_logging()
 # Rate limiter — global limits, Redis-backed for shared state across replicas
 # Using a fixed key so all requests share the same counter (global rate limit)
 # Per-IP limiting is not useful behind Contour where all traffic shares one IP
-limiter = Limiter(
-    key_func=lambda request: "global",
-    storage_uri=f"redis://:{reg.REDIS_PASSWORD}@{reg.REDIS_HOST}:{reg.REDIS_PORT}/{reg.REDIS_DB}",
-    default_limits=["300/minute"],
-)
+#
+# Storage backend selection:
+#   - Try Redis first (shared state across replicas)
+#   - Fall back to in-memory if Redis is unavailable (single-replica fallback)
+def _build_limiter() -> Limiter:
+    redis_uri = f"redis://:{reg.REDIS_PASSWORD}@{reg.REDIS_HOST}:{reg.REDIS_PORT}/{reg.REDIS_DB}"
+    try:
+        # Test Redis connectivity before using it as rate limit backend
+        import redis as _redis
+        client = _redis.Redis(
+            host=reg.REDIS_HOST,
+            port=reg.REDIS_PORT,
+            password=reg.REDIS_PASSWORD,
+            db=reg.REDIS_DB,
+            socket_connect_timeout=2,
+            socket_timeout=2,
+        )
+        client.ping()
+        client.close()
+        return Limiter(
+            key_func=lambda request: "global",
+            storage_uri=redis_uri,
+            default_limits=["300/minute"],
+        )
+    except Exception as e:
+        import logging
+        logging.getLogger("schema_validator").warning(
+            f"Rate limiter falling back to in-memory storage (Redis unavailable: {e})"
+        )
+        # In-memory fallback — limits enforced per-process, not shared across replicas
+        return Limiter(
+            key_func=lambda request: "global",
+            storage_uri="memory://",
+            default_limits=["300/minute"],
+        )
+
+limiter = _build_limiter()
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
