@@ -134,7 +134,7 @@
     <span class="format-label">Format</span>
     <button class="pill active" data-fmt="json">JSON</button>
     <button class="pill" data-fmt="csv">CSV</button>
-    <button class="pill disabled" data-fmt="xml" title="XML schema generation not supported">XML</button>
+    <button class="pill" data-fmt="xml">XML</button>
     <span class="hint" style="margin-left:8px" id="inputHint">Paste a representative sample — the more fields the better. Ctrl+Enter to generate.</span>
   </div>
 
@@ -191,6 +191,9 @@
     if (currentFormat === 'csv') {
       hint.textContent = 'Include a header row and at least 2–3 data rows for best type inference. Ctrl+Enter to generate.';
       ta.placeholder = 'Paste your sample CSV here, e.g.:\nid,name,email,age\n1,Alice,alice@example.com,30\n2,Bob,bob@example.com,25';
+    } else if (currentFormat === 'xml') {
+      hint.textContent = 'Paste a sample XML document. The generated XSD is a starting point — review before production use. Ctrl+Enter to generate.';
+      ta.placeholder = 'Paste your sample XML here, e.g.:\n<person id="1">\n  <name>Alice</name>\n  <age>30</age>\n  <active>true</active>\n</person>';
     } else {
       hint.textContent = 'Paste a representative sample — the more fields the better. Ctrl+Enter to generate.';
       ta.placeholder = 'Paste your sample JSON here, e.g.:\n{\n  "id": 1,\n  "name": "Alice",\n  "email": "alice@example.com",\n  "active": true\n}';
@@ -206,7 +209,6 @@
   }
 
   async function generate() {
-    if (currentFormat === 'xml') return;
     const data = document.getElementById('inputData').value.trim();
     if (!data) { setStatus('Paste some sample data first.', 'error'); return; }
     const btn = document.getElementById('generateBtn');
@@ -221,9 +223,11 @@
       const json = await res.json();
       if (!res.ok) { setStatus(json.detail || 'Generation failed.', 'error'); return; }
       generatedSchema = json.schema;
-      document.getElementById('outputSchema').value = JSON.stringify(generatedSchema, null, 2);
+      const isXml = currentFormat === 'xml';
+      document.getElementById('outputSchema').value = isXml ? generatedSchema : JSON.stringify(generatedSchema, null, 2);
       document.getElementById('copyBtn').disabled = false;
-      document.getElementById('openBuilderBtn').style.display = 'inline-flex';
+      document.getElementById('openBuilderBtn').style.display = currentFormat === 'xml' ? 'none' : 'inline-flex';
+      document.getElementById('xmlNotice').style.display = currentFormat === 'xml' ? 'block' : 'none';
       setStatus('Schema generated.', 'success');
     } catch(e) { setStatus('Request failed: ' + e.message, 'error'); }
     finally { btn.disabled = false; btn.textContent = '⚡ Generate Schema'; }

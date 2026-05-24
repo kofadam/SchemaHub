@@ -15,7 +15,7 @@ from slowapi.errors import RateLimitExceeded
 from validators.json_validator import validate_json
 from validators.xml_validator import validate_xml
 from validators.csv_validator import validate_csv
-from validators.schema_generator import generate_json_schema, generate_csv_schema
+from validators.schema_generator import generate_json_schema, generate_csv_schema, generate_xml_schema
 import registry as reg
 from logging_middleware import JSONLoggingMiddleware, setup_logging
 from size_limits import BodySizeLimitMiddleware, check_field_sizes, MAX_DATA_BYTES, MAX_SCHEMA_BYTES
@@ -600,13 +600,20 @@ GENERATE_EXAMPLES = {
             "data": "id,name,email,age\n1,Alice,alice@example.com,30\n2,Bob,bob@example.com,25",
         },
     },
+    "xml_sample": {
+        "summary": "Generate XSD from XML sample",
+        "value": {
+            "format": "xml",
+            "data": "<person id=\"1\"><name>Alice</name><age>30</age><active>true</active></person>",
+        },
+    },
 }
 
 
 class GenerateSchemaRequest(BaseModel):
     format: str = Field(
         ...,
-        description="Format to generate a schema for. Supported: `json`, `csv`. XML is not supported.",
+        description="Format to generate a schema for. Supported: `json`, `csv`, `xml`.",
     )
     data: str = Field(
         ...,
@@ -619,7 +626,7 @@ class GenerateSchemaResponse(BaseModel):
     schema_: Any = Field(
         ...,
         alias="schema",
-        description="The generated schema. JSON Schema 2020-12 for `json`, Frictionless Table Schema for `csv`.",
+        description="The generated schema. JSON Schema 2020-12 for `json`, Frictionless Table Schema for `csv`, XSD string for `xml`.",
     )
 
     model_config = {"populate_by_name": True}
@@ -646,22 +653,17 @@ def generate_schema(
 
     - **JSON** → produces a JSON Schema 2020-12 object
     - **CSV** → produces a Frictionless Table Schema object
-    - **XML** → not supported; provide your XSD manually
+    - **XML** → produces a basic XSD string (review before production use)
 
     The generated schema can be used directly in `POST /validate` as `schema_inline`,
     or registered via `POST /schemas` to get a reusable `schema_id`.
     """
     fmt = req.format.lower()
 
-    if fmt == "xml":
+    if fmt not in ("json", "csv", "xml"):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="XML schema generation is not supported. Please provide your XSD manually.",
-        )
-    if fmt not in ("json", "csv"):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Unsupported format '{fmt}'. Supported formats for generation: json, csv.",
+            detail=f"Unsupported format '{fmt}'. Supported formats for generation: json, csv, xml.",
         )
 
     try:
@@ -669,6 +671,8 @@ def generate_schema(
             schema = generate_json_schema(req.data)
         elif fmt == "csv":
             schema = generate_csv_schema(req.data)
+        elif fmt == "xml":
+            schema = generate_xml_schema(req.data)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
