@@ -93,7 +93,7 @@ class JSONLoggingMiddleware(BaseHTTPMiddleware):
         self._log(record)
 
         # Increment Redis request counter (only for API endpoints, not static/ui)
-        if not request.url.path.startswith("/static") and request.url.path not in ("/", "/ui", "/builder", "/docs", "/redoc", "/healthz", "/metrics"):
+        if not request.url.path.startswith("/static") and request.url.path not in ("/", "/ui", "/builder", "/docs", "/redoc", "/healthz", "/metrics", "/stats", "/openapi.json", "/favicon.svg"):
             reg.increment_request_counter()
 
         # Pass request_id back in response header for client-side tracing
