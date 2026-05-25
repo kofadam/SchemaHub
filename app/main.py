@@ -162,25 +162,149 @@ registry_size_gauge = Gauge(
 # Docs endpoints — served from local static files (air-gap safe)
 # ---------------------------------------------------------------------------
 
+SH_HEADER_CSS = """
+:root {
+  --sh-bg: #f8faff;
+  --sh-surface: #ffffff;
+  --sh-border: #dde3f5;
+  --sh-accent: #2563eb;
+  --sh-accent2: #7c3aed;
+  --sh-accent-light: #eff6ff;
+  --sh-accent2-light: #f5f3ff;
+  --sh-text: #0f172a;
+  --sh-text3: #64748b;
+  --sh-shadow: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.04);
+}
+body { margin: 0; }
+.sh-header {
+  background: var(--sh-surface);
+  border-bottom: 1px solid var(--sh-border);
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  height: 56px;
+  box-shadow: var(--sh-shadow);
+  position: sticky;
+  top: 0;
+  z-index: 9999;
+  font-family: 'Inter','DM Sans','Segoe UI',system-ui,sans-serif;
+}
+.sh-logo {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  text-decoration: none;
+}
+.sh-logo-icon {
+  width: 28px; height: 28px;
+  background: linear-gradient(135deg, var(--sh-accent), var(--sh-accent2));
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  color: #fff;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+.sh-logo-text {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--sh-text);
+  letter-spacing: -0.02em;
+}
+.sh-logo-text span { color: var(--sh-accent); }
+.sh-nav {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.sh-nav a {
+  color: var(--sh-text3);
+  text-decoration: none;
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding: 5px 11px;
+  border-radius: 6px;
+  transition: all 0.15s;
+}
+.sh-nav a:hover { background: var(--sh-accent-light); color: var(--sh-accent); }
+.sh-nav a.active {
+  background: var(--sh-accent-light);
+  color: var(--sh-accent);
+  font-weight: 700;
+}
+.sh-nav a.active-violet {
+  background: var(--sh-accent2-light);
+  color: var(--sh-accent2);
+  font-weight: 700;
+}
+"""
+
+def _sh_header(active: str) -> str:
+    """Return the SchemaHub header HTML, marking the active nav item."""
+    def cls(name: str) -> str:
+        if name == active:
+            return ' class="active"' if active != 'redoc' else ' class="active-violet"'
+        return ''
+    return f"""
+<header class="sh-header">
+  <a class="sh-logo" href="/">
+    <div class="sh-logo-icon">SH</div>
+    <span class="sh-logo-text">Schema<span>Hub</span></span>
+  </a>
+  <nav class="sh-nav">
+    <a href="/ui"{cls('ui')}>Generator</a>
+    <a href="/builder"{cls('builder')}>Builder</a>
+    <a href="/docs"{cls('docs')}>API Docs</a>
+    <a href="/redoc"{cls('redoc')}>ReDoc</a>
+  </nav>
+</header>
+"""
+
+
 @app.get("/docs", include_in_schema=False)
 def docs():
-    return get_swagger_ui_html(
+    # Use FastAPI's helper to generate Swagger UI, then inject the SchemaHub header
+    swagger = get_swagger_ui_html(
         openapi_url="/openapi.json",
-        title="Schema Validator",
+        title="SchemaHub — API Docs",
         swagger_js_url="/static/swagger-ui-bundle.js",
         swagger_css_url="/static/swagger-ui.css",
         swagger_favicon_url="/static/favicon.svg",
     )
+    body = swagger.body.decode("utf-8")
+    # Inject header CSS into <head> and the header element right after <body>
+    body = body.replace(
+        "</head>",
+        f"<style>{SH_HEADER_CSS}</style></head>",
+    )
+    body = body.replace(
+        "<body>",
+        f"<body>{_sh_header('docs')}",
+    )
+    return HTMLResponse(content=body)
 
 
 @app.get("/redoc", include_in_schema=False)
 def redoc():
-    return get_redoc_html(
+    redoc_html = get_redoc_html(
         openapi_url="/openapi.json",
-        title="Schema Validator",
+        title="SchemaHub — API Reference",
         redoc_js_url="/static/redoc.standalone.js",
         redoc_favicon_url="/static/favicon.svg",
     )
+    body = redoc_html.body.decode("utf-8")
+    body = body.replace(
+        "</head>",
+        f"<style>{SH_HEADER_CSS}</style></head>",
+    )
+    body = body.replace(
+        "<body>",
+        f"<body>{_sh_header('redoc')}",
+    )
+    return HTMLResponse(content=body)
 
 
 # ---------------------------------------------------------------------------
