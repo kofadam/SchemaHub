@@ -9,7 +9,6 @@
 [![Python](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688.svg)](https://fastapi.tiangolo.com/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Container](https://img.shields.io/badge/ghcr.io-kofadam%2Fschemahub-blue?logo=github)](https://ghcr.io/kofadam/schemahub)
 
 </div>
 
@@ -32,10 +31,13 @@ SchemaHub is a self-hosted schema management service designed for data pipelines
 - **Three formats** — JSON ([JSON Schema 2020-12](https://json-schema.org/draft/2020-12)), XML ([XSD](https://www.w3.org/XML/Schema)), CSV ([Frictionless Table Schema](https://specs.frictionlessdata.io/table-schema/))
 - **Schema registry** — register schemas once, reference by UUID from any pipeline
 - **Persistent storage** — Redis-backed registry survives restarts and scales across replicas
-- **Visual builder** — string patterns, min/max, enums, nested objects, `if/then/else` conditionals
-- **Generator → Builder flow** — generate from sample data, open in Builder to refine
-- **Production-ready** — structured JSON logging, global rate limiting, request size limits, Prometheus metrics, PodDisruptionBudget
+- **Visual builder** — works for JSON Schema and XSD; supports patterns, min/max, enums, nested objects, `if/then/else` conditionals, and `minOccurs`/`maxOccurs` for XML elements
+- **Schema generation** — auto-generate schemas from sample data for all three formats, including XSD inference from sample XML
+- **Generator → Builder flow** — generate from sample data, open in the Visual Builder to refine, register to the registry
+- **Hardened by default** — XML bomb / XXE protection via defusedxml, ReDoS prevention in JSON Schema patterns, configurable size and registry caps
+- **Production-ready** — structured JSON logging, global rate limiting (with in-memory fallback when Redis is unavailable), request size limits, PodDisruptionBudget
 - **Observable** — structured logs for Loki, `/metrics` endpoint for Prometheus, Grafana dashboard included
+- **Unified UI** — consistent header and navigation across the landing page, Generator, Builder, Swagger UI, and ReDoc
 
 <img width="3054" height="1932" alt="image" src="https://github.com/user-attachments/assets/90c3e9b8-36e2-4226-8ea9-91a66365f3f3" />
 
@@ -47,6 +49,8 @@ SchemaHub is a self-hosted schema management service designed for data pipelines
 
 ## Quick start
 
+### 1. Clone and download assets
+
 ```bash
 git clone https://github.com/kofadam/schemahub.git
 cd schemahub
@@ -55,11 +59,17 @@ curl -sLo swagger-static/swagger-ui-bundle.js "https://cdn.jsdelivr.net/npm/swag
 curl -sLo swagger-static/swagger-ui.css        "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css"
 curl -sLo swagger-static/redoc.standalone.js   "https://unpkg.com/redoc@latest/bundles/redoc.standalone.js"
 curl -sLo swagger-static/favicon.png           "https://fastapi.tiangolo.com/img/favicon.png"
-
-docker compose up
 ```
 
-Open `http://localhost:8000`.
+> `swagger-static/` already exists in the repo — no need to create it.
+
+### 2a. Run with Docker Compose (recommended — includes Redis)
+
+```bash
+docker compose up --build
+```
+
+Open `http://localhost:8000`. The schema registry is persistent across restarts.
 
 ```bash
 # Stop
@@ -68,6 +78,15 @@ docker compose down
 # Stop and wipe Redis data
 docker compose down -v
 ```
+
+### 2b. Run with Docker only (no Redis — in-memory registry)
+
+```bash
+docker build -f Dockerfile.local -t schemahub:local .
+docker run --rm -p 8000:8000 schemahub:local
+```
+
+> Without Redis the registry is in-memory — schemas are lost on restart. All other features work normally.
 
 ## API
 
